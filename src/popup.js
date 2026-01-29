@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Function injected into page to detect quiz content
 function detectQuizContent() {
 
-    // Blackboard Ultra selectors (Syracuse)
+    // Blackboard Ultra selectors (SU)
     const ultraSelectors = [
         '.assessment-question',
         'li[ng-repeat*="questionAttempt"]',
@@ -129,7 +129,7 @@ function detectQuizContent() {
         '[class*="js-question-type"]'
     ];
 
-    // Classic Blackboard selectors
+    // Classic Blackboard selectors (idk if this works)
     const classicSelectors = [
         '.vtbegenerated',
         '[class*="question"]',
@@ -188,9 +188,9 @@ function detectQuizContent() {
     };
 }
 
-// Main extraction and conversion function (injected into page)
+// Main extraction and conversion function that is injected into page
 function extractAndConvert(options, previewOnly) {
-    // Quiz extraction logic - optimized for Blackboard Ultra (Syracuse)
+    // Quiz extraction logic - optimized for SU Blackboard Ultra
 
     const BLANK_PLACEHOLDER = '               '; // '_______________';
 
@@ -225,14 +225,6 @@ function extractAndConvert(options, previewOnly) {
                 );
             if (headerEl) quiz.course = headerEl.getAttribute('aria-label').substring(7);
         }
-
-        // Extract score if visible
-        // const scoreEl = document.querySelector(
-        //   '.grade, [class*="score"], [class*="grade"], .attemptScore'
-        // );
-        // if (scoreEl) {
-        //   quiz.score = scoreEl.textContent.trim();
-        // }
 
         // Find all questions using Ultra-specific selectors
         const questionContainers = findQuestionContainers();
@@ -297,7 +289,7 @@ function extractAndConvert(options, previewOnly) {
             // Clone the element to manipulate without affecting the page
             const clone = editorEl.cloneNode(true);
 
-            // Replace all blank input spans with underscores
+            // Replace all blank input spans with delimiter
             clone.querySelectorAll('span[data-blankid]').forEach(blank => {
                 const placeholder = document.createElement('span');
                 placeholder.className = 'answer-blank';

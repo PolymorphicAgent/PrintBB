@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Print Blackboard",
+    "name": "Blackboard Print",
     "$schema": "https://json.schemastore.org/chrome-manifest.json",
     "version": "1.0.0",
     "description": "Convert SU Blackboard quizzes to printer-friendly PDF files",
@@ -28,7 +28,6 @@
             "*://blackboard.syr.edu/*",
             "*://*.syracuse.edu/*"
         ],
-        "js": ["content.js"],
-        "css": ["content.css"]
+        "js": ["content.js"]
     }]
 }
