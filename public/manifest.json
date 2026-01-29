@@ -1,0 +1,34 @@
+{
+    "manifest_version": 3,
+    "name": "Print Blackboard",
+    "$schema": "https://json.schemastore.org/chrome-manifest.json",
+    "version": "1.0.0",
+    "description": "Convert SU Blackboard quizzes to printer-friendly PDF files",
+    "permissions": [
+        "activeTab",
+        "scripting"
+    ],
+    "action": {
+        "default_title": "PrintBB",
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icons/icon_16.png",
+            "48": "icons/icon_48.png",
+            "128": "icons/icon_128.png"
+        }
+    },
+    "icons": {
+        "16": "icons/icon_16.png",
+        "48": "icons/icon_48.png",
+        "128": "icons/icon_128.png"
+    },
+    "content_scripts": [{
+        "matches": [
+            "*://*.blackboard.com/*",
+            "*://blackboard.syr.edu/*",
+            "*://*.syracuse.edu/*"
+        ],
+        "js": ["content.js"],
+        "css": ["content.css"]
+    }]
+}
