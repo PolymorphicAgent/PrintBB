@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blackboard Print - Chrome Extension</title>
+  <meta name="description" content="Convert Blackboard Ultra quizzes to clean, printer-friendly PDFs. A Chrome extension by PolymorphicAgent.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Arctic Frost - Light Theme */
+      --bg-primary: #f0f7ff;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --text-primary: #1a2a3a;
+      --text-secondary: #4a5a6a;
+      --text-muted: #7a8a9a;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-soft: #dbeafe;
+      --border: #e0e8f0;
+      --shadow: rgba(59, 130, 246, 0.08);
+      --shadow-hover: rgba(59, 130, 246, 0.15);
+      --gradient-start: #e0f2fe;
+      --gradient-end: #f0f7ff;
+      --hero-gradient: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #ede9fe 100%);
+    }
+
+    [data-theme="midnight"] {
+      /* Midnight - Dark Theme */
+      --bg-primary: #0f0f1a;
+      --bg-secondary: #1a1a2e;
+      --bg-card: #1f1f35;
+      --text-primary: #e8e8f0;
+      --text-secondary: #a8a8c0;
+      --text-muted: #6a6a8a;
+      --accent: #818cf8;
+      --accent-hover: #a5b4fc;
+      --accent-soft: rgba(129, 140, 248, 0.15);
+      --border: #2a2a45;
+      --shadow: rgba(0, 0, 0, 0.3);
+      --shadow-hover: rgba(129, 140, 248, 0.2);
+      --gradient-start: #1a1a2e;
+      --gradient-end: #0f0f1a;
+      --hero-gradient: linear-gradient(135deg, #1a1a2e 0%, #1f1f35 50%, #1a1a30 100%);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    /* Theme Toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 8px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      box-shadow: 0 2px 10px var(--shadow);
+      transition: all 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+      box-shadow: 0 4px 20px var(--shadow-hover);
+      transform: translateY(-1px);
+    }
+
+    .theme-toggle .icon {
+      font-size: 18px;
+    }
+
+    /* Navigation */
+    .back-link {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      box-shadow: 0 2px 10px var(--shadow);
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+      box-shadow: 0 4px 20px var(--shadow-hover);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 20px 80px;
+      background: var(--hero-gradient);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 30% 20%, var(--accent-soft) 0%, transparent 50%),
+                  radial-gradient(circle at 70% 80%, var(--accent-soft) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+    }
+
+    .hero-icon {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 32px;
+      border-radius: 24px;
+      box-shadow: 0 8px 40px var(--shadow-hover);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero .tagline {
+      font-size: clamp(1.1rem, 2vw, 1.35rem);
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+      max-width: 600px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* Marquee Banner Section */
+    .marquee-section {
+      padding: 60px 20px;
+      background: var(--bg-secondary);
+    }
+
+    .marquee-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .marquee-image {
+      width: 100%;
+      border-radius: 16px;
+      box-shadow: 0 8px 40px var(--shadow);
+      opacity: 0;
+      transform: translateY(40px);
+      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .marquee-image.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Features Section */
+    .features {
+      padding: 100px 20px;
+      background: var(--bg-primary);
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 60px;
+    }
+
+    .section-header h2 {
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    .section-header p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .feature-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .feature-card:hover {
+      box-shadow: 0 8px 30px var(--shadow-hover);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    /* Screenshots Section */
+    .screenshots {
+      padding: 100px 20px;
+      background: var(--bg-secondary);
+    }
+
+    .screenshots-grid {
+      display: grid;
+      gap: 40px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .screenshot-item {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(60px);
+      transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .screenshot-item.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .screenshot-item:nth-child(even) {
+      direction: rtl;
+    }
+
+    .screenshot-item:nth-child(even) > * {
+      direction: ltr;
+    }
+
+    .screenshot-image {
+      width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 8px 40px var(--shadow);
+      transition: transform 0.3s ease;
+    }
+
+    .screenshot-image:hover {
+      transform: scale(1.02);
+    }
+
+    .screenshot-text h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .screenshot-text p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    /* How It Works */
+    .how-it-works {
+      padding: 100px 20px;
+      background: var(--bg-primary);
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .step {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      opacity: 0;
+      transform: translateX(-40px);
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .step.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .step-number {
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+
+    .step-content h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .step-content p {
+      color: var(--text-secondary);
+    }
+
+    /* Footer */
+    .footer {
+      padding: 60px 20px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .footer-content {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .footer-logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .footer p {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.3s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 32px 0;
+    }
+
+    .footer-bottom {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .footer-bottom a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .footer-bottom a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .screenshot-item {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .screenshot-item:nth-child(even) {
+        direction: ltr;
+      }
+
+      .back-link span {
+        display: none;
+      }
+
+      .theme-toggle span {
+        display: none;
+      }
+
+      .back-link, .theme-toggle {
+        padding: 12px;
+      }
+    }
+
+    /* Animation delays for staggered reveals */
+    .feature-card:nth-child(1) { transition-delay: 0s; }
+    .feature-card:nth-child(2) { transition-delay: 0.1s; }
+    .feature-card:nth-child(3) { transition-delay: 0.2s; }
+    .feature-card:nth-child(4) { transition-delay: 0.3s; }
+
+    .step:nth-child(1) { transition-delay: 0s; }
+    .step:nth-child(2) { transition-delay: 0.15s; }
+    .step:nth-child(3) { transition-delay: 0.3s; }
+    .step:nth-child(4) { transition-delay: 0.45s; }
+
+    .screenshot-item:nth-child(1) { transition-delay: 0s; }
+    .screenshot-item:nth-child(2) { transition-delay: 0.1s; }
+    .screenshot-item:nth-child(3) { transition-delay: 0.2s; }
+    .screenshot-item:nth-child(4) { transition-delay: 0.3s; }
+    .screenshot-item:nth-child(5) { transition-delay: 0.4s; }
+  </style>
+</head>
+<body>
+  <!-- Back to main site -->
+  <a href="https://polimorph.dev" class="back-link">
+    <span>←</span> <span>polimorph.dev</span>
+  </a>
+
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" onclick="toggleTheme()">
+    <span class="icon">🌙</span>
+    <span>Theme</span>
+  </button>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <img src="icon128.png" alt="Blackboard Print Icon" class="hero-icon">
+      <h1>Blackboard Print</h1>
+      <p class="tagline">Convert Blackboard Ultra quizzes to clean, printer-friendly PDFs. Perfect for studying, archiving, or offline review.</p>
+      <div class="cta-buttons">
+        <a href="#" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm0 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10z"/><path d="M12 6c-3.3 0-6 2.7-6 6s2.7 6 6 6 6-2.7 6-6-2.7-6-6-6z"/></svg>
+          Add to Chrome
+        </a>
+        <a href="#features" class="btn btn-secondary">Learn More</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Marquee Banner -->
+  <section class="marquee-section">
+    <div class="marquee-container">
+      <img src="promo-marquee.jpg" alt="Blackboard Print - Feature Overview" class="marquee-image reveal">
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="section-header">
+      <h2>Why Blackboard Print?</h2>
+      <p>Designed specifically for Syracuse University's Blackboard Ultra, but may work with other institutions too.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon">📄</div>
+        <h3>Clean PDF Output</h3>
+        <p>Strips away Blackboard's cluttered interface to produce clean, print-ready documents.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">🖼️</div>
+        <h3>Images Included</h3>
+        <p>Diagrams, figures, and embedded images are automatically extracted and included in your PDF.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">✏️</div>
+        <h3>Fill-in Blanks</h3>
+        <p>Answer fields are converted to clean underlines, making it easy to practice or use as a study worksheet.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">⚙️</div>
+        <h3>Customizable</h3>
+        <p>Options for compact mode, one question per page, edit mode for corrections, etc.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshots Section -->
+  <section class="screenshots" id="screenshots">
+    <div class="section-header">
+      <h2>See It In Action</h2>
+      <p>From messy Blackboard pages to clean, printable documents in the blink of an eye.</p>
+    </div>
+    <div class="screenshots-grid">
+      <div class="screenshot-item reveal">
+        <img src="promo-1.png" alt="Extension popup interface" class="screenshot-image">
+        <div class="screenshot-text">
+          <h3>Simple Popup Interface</h3>
+          <p>Click the extension icon on any Blackboard quiz page. It automatically detects questions and shows you exactly what it found.</p>
+        </div>
+      </div>
+      <div class="screenshot-item reveal">
+        <img src="promo-2.png" alt="Quiz detection" class="screenshot-image">
+        <div class="screenshot-text">
+          <h3>Smart Detection</h3>
+          <p>Automatically identifies fill-in-the-blank questions, multiple choice, images, and point values from Blackboard Ultra's complex HTML structure.</p>
+        </div>
+      </div>
+      <div class="screenshot-item reveal">
+        <img src="promo-3.jpg" alt="Preview mode" class="screenshot-image">
+        <div class="screenshot-text">
+          <h3>Preview Before Printing</h3>
+          <p>See exactly how your PDF will look before printing. Make edits, toggle options, whatever.</p>
+        </div>
+      </div>
+      <div class="screenshot-item reveal">
+        <img src="promo-4.jpg" alt="Clean PDF output" class="screenshot-image">
+        <div class="screenshot-text">
+          <h3>Professional Output</h3>
+          <p>Clean typography, proper spacing, and intelligent page breaks create official-looking documents.</p>
+        </div>
+      </div>
+      <div class="screenshot-item reveal">
+        <img src="promo-5.png" alt="Edit mode" class="screenshot-image">
+        <div class="screenshot-text">
+          <h3>Edit Mode</h3>
+          <p>Enable editing to make last-minute corrections or add notes before printing—all without leaving the preview.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="section-header">
+      <h2>How It Works</h2>
+      <p>Four simple steps to better quiz documents.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>Install the Extension</h3>
+          <p>Add Blackboard Print to Chrome from the Chrome Web Store. No account or setup required.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>Navigate to Your Quiz</h3>
+          <p>Open any Blackboard Ultra quiz, and start a new attempt.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>Click & Configure</h3>
+          <p>Click the extension icon, choose your options (compact mode, one per page, etc.), and hit Preview.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-number">4</div>
+        <div class="step-content">
+          <h3>Print or Save</h3>
+          <p>Use your browser's print dialog to save as PDF or send directly to your printer.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-logo">Blackboard Print</div>
+      <p>A free, open-source Chrome extension for that one professor who makes you print out quizzes.</p>
+      <div class="footer-links">
+        <a href="#">Chrome Web Store</a>
+        <a href="https://github.com/PolymorphicAgent">GitHub</a>
+        <a href="https://polimorph.dev">More Projects</a>
+      </div>
+      <div class="footer-divider"></div>
+      <div class="footer-bottom">
+        Extension made with ☕ by <a href="https://polimorph.dev">PolymorphicAgent</a>
+      </div>
+      <div class="footer-divider"></div>
+      <div class="footer-bottom">
+        This page was created with the help of Claude AI.</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'midnight' ? null : 'midnight';
+      
+      if (newTheme) {
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        document.querySelector('.theme-toggle .icon').textContent = '☀️';
+      } else {
+        html.removeAttribute('data-theme');
+        localStorage.removeItem('theme');
+        document.querySelector('.theme-toggle .icon').textContent = '🌙';
+      }
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      document.querySelector('.theme-toggle .icon').textContent = '☀️';
+    }
+
+    // Intersection Observer for scroll animations
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          // Optionally stop observing after reveal
+          // observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    // Observe all elements with .reveal class
+    document.querySelectorAll('.reveal').forEach(el => {
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>
