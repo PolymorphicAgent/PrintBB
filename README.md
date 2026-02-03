@@ -4,7 +4,7 @@ A Chrome extension that converts SU Blackboard quizzes into clean, printer-frien
 
 ## Installation for normal users
 
-Can be installed from the Chrome Web Store: (link will be inserted here once the extension is uploaded)
+Can be installed from the <a href="https://chromewebstore.google.com/detail/blackboard-print/mfkodoichibecnjoackcdomjncoofbbi" target="_blank" rel="noopener noreferrer">Chrome Web Store.</a>
 
 ## Installation for Developers
 
